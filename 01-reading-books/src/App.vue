@@ -1,26 +1,40 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div id="app">
+    <LibrosDisponibles />
+<!--    <ListaDeLectura />-->
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import LibrosDisponibles from '@/components/LibrosDisponibles';
+// import ListaDeLectura from '@/components/ListaDeLectura';
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    LibrosDisponibles,
+    // ListaDeLectura,
   }
 }
 </script>
 
 <style>
+body {
+  background-color: #2A2A2A;
+  display: flex;
+  justify-content: center;
+}
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Comic Sans MS", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+  text-align: start;
   margin-top: 60px;
+  width: 80vw;
+  height: 100%;
+  padding: 10px;
+}
+h1,h2,label{
+  color: #AAA;
 }
 </style>
