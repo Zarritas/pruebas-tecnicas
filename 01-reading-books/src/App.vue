@@ -23,6 +23,7 @@ body {
   background-color: #2A2A2A;
   display: flex;
   justify-content: center;
+  align-items: start;
 }
 #app {
   font-family: "Comic Sans MS", Helvetica, Arial, sans-serif;
@@ -36,5 +37,16 @@ body {
 }
 h1,h2,label{
   color: #AAA;
+}
+.completado {
+  width: 100%;
+  padding: 15px;
+  color: green;
+  border: 3px solid green;
+  font-weight: bolder;
+  font-size: larger;
+  border-radius: 5px;
+  filter: brightness(150%);
+  z-index: 2;
 }
 </style>

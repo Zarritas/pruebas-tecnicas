@@ -30,15 +30,16 @@ export default {
         document.getElementById("listaLectura").hidden = false;
       }
     },
-    quitarLibroDeLectura(libro) {
-      this.listaLibrosDeLectura.delete(libro);
-      this.listaLibrosDeLecturaFiltrada.delete(libro);
-      document.getElementById(libro.title).classList.remove("libroLectura");
-      document.getElementById(libro.title).classList.add("libroDisponible");
-      document.getElementById(libro.title).firstChild.hidden = false;
-      if (this.listaLibrosDeLectura.size === 0) {
-        document.getElementById("listaLectura").hidden = true;
+    libroCompletado(event) {
+      let book = event.target;
+      if (book.classList.contains("libroCompletado")||book.classList.contains("completado")) {
+        return;
       }
+      book.classList.add("libroCompletado");
+      let completado = document.createElement("div");
+      completado.classList.add("completado");
+      completado.textContent = "Completado";
+      book.appendChild(completado);
     },
   },
   beforeMount() {
@@ -86,9 +87,14 @@ export default {
       .getElementById("filtroPorTexto")
       .addEventListener("keyup", (event) => {
         let aux = new Set(this.listaLibrosDeLectura);
-        this.listaLibrosDeLecturaFiltrada = new Set(Array.from(aux).filter((book) =>
-          book.title.startsWith(event.target.value.charAt(0).toUpperCase() + event.target.value.slice(1))
-        ));
+        this.listaLibrosDeLecturaFiltrada = new Set(
+          Array.from(aux).filter((book) =>
+            book.title.startsWith(
+              event.target.value.charAt(0).toUpperCase() +
+                event.target.value.slice(1)
+            )
+          )
+        );
       });
   },
 };
@@ -176,11 +182,14 @@ export default {
           <section
             v-for="book in this.listaLibrosDeLecturaFiltrada"
             :key="book.title"
+            :style="
+              'background: url(' +
+              book.cover +
+              ') no-repeat center center; background-size: cover;'
+            "
             class="book libroDisponible"
-            @click="quitarLibroDeLectura(book)"
-          >
-            <img :src="book.cover" :id="book.title" :alt="book.title" />
-          </section>
+            @click="libroCompletado"
+          ></section>
         </div>
       </main>
     </div>
@@ -194,6 +203,7 @@ export default {
   grid-column-gap: 10px;
   width: 100%;
   height: 100%;
+  align-items: start;
 }
 
 #librosDisponibles {
@@ -202,7 +212,7 @@ export default {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: start;
   align-items: center;
 }
 
@@ -297,5 +307,23 @@ img {
 
 .libroDisponible:hover .description {
   display: block;
+}
+.libroCompletado {
+  backdrop-filter: blur(1px);
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(
+      0,
+      0,
+      0,
+      0.5
+    );
+    z-index: 1;
+  }
 }
 </style>
