@@ -1,19 +1,16 @@
 <template>
   <div id="app">
     <LibrosDisponibles />
-<!--    <ListaDeLectura />-->
   </div>
 </template>
 
 <script>
 import LibrosDisponibles from '@/components/LibrosDisponibles';
-// import ListaDeLectura from '@/components/ListaDeLectura';
 
 export default {
   name: 'App',
   components: {
     LibrosDisponibles,
-    // ListaDeLectura,
   }
 }
 </script>

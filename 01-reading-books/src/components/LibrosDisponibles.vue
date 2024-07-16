@@ -1,102 +1,65 @@
 <script>
-// import {genero, libros} from '@/store/store';
-// import FiltrarLibros from '@/components/FiltrarLibros';
-import lista from "@/assets/books.json";
+import axios from "axios";
 
 export default {
   name: "LibrosDisponibles",
-  /*components: {
-    FiltrarLibros,
-  },*/
   data() {
     return {
-      listaLibrosDisponibles: new Set(),
-      listaLibrosDisponiblesFiltrada: new Set(),
+      listaLibrosDisponibles: null,
       listaLibrosDeLectura: new Set(),
       listaLibrosDeLecturaFiltrada: new Set(),
-      listaGeneros: null,
-      pageMin: null,
+      pageCurrent: 0,
+      maxResults: 20,
       pageMax: null,
+      pageMin: 1,
+      totalLibros: 0,
+      idioma: null,
+      urlApi: "https://www.googleapis.com/books/v1/volumes?q=",
     };
   },
   methods: {
-    agregarLibroALectura(libro) {
-      this.listaLibrosDeLectura.add(libro);
-      this.listaLibrosDeLecturaFiltrada.add(libro);
-      document.getElementById(libro.title).classList.add("libroLectura");
-      document.getElementById(libro.title).classList.remove("libroDisponible");
-      document.getElementById(libro.title).firstChild.hidden = true;
-      if (this.listaLibrosDeLectura.size > 0) {
-        document.getElementById("listaLectura").hidden = false;
-      }
+    filtrarLibrosPorCategoria(categoria) {
+      let autorFiltrado ="subject:" + categoria;
+      this.buscarLibros(autorFiltrado)
     },
-    libroCompletado(event) {
-      let book = event.target;
-      if (book.classList.contains("libroCompletado")||book.classList.contains("completado")) {
-        return;
-      }
-      book.classList.add("libroCompletado");
-      let completado = document.createElement("div");
-      completado.classList.add("completado");
-      completado.textContent = "Completado";
-      book.appendChild(completado);
+    filtrarLibrosPorAutor(autor) {
+      let autorFiltrado ="inauthor:" + autor;
+      this.buscarLibros(autorFiltrado)
     },
-  },
-  beforeMount() {
-    this.listaLibrosDisponibles = JSON.parse(JSON.stringify(lista));
-    this.listaLibrosDisponiblesFiltrada = new Set(
-      this.listaLibrosDisponibles.library
-    );
-    this.listaGeneros = new Set(
-      this.listaLibrosDisponibles.library.map((book) => book.book.genre)
-    );
-    this.pageMin = Math.min(
-      ...this.listaLibrosDisponibles.library.map((book) => book.book.pages)
-    );
-    this.pageMax = Math.max(
-      ...this.listaLibrosDisponibles.library.map((book) => book.book.pages)
-    );
-  },
-  mounted() {
-    document
-      .getElementById("generoSelect")
-      .addEventListener("change", (event) => {
-        if (event.target.value === "") {
-          this.listaLibrosDisponiblesFiltrada = new Set(
-            this.listaLibrosDisponibles.library
-          );
-        } else if (this.listaGeneros.has(event.target.value)) {
-          let aux = this.listaLibrosDisponibles.library.slice();
-          this.listaLibrosDisponiblesFiltrada = aux.filter(
-            (book) => book.book.genre === event.target.value
-          );
+    buscarLibros(...args) {
+      let masparametros = "";
+      if (args.length > 0) {
+        for (let i = 0; i < args.length; i++) {
+          masparametros += "+"+args[i];
         }
-      });
-    document.getElementById("pageRange").addEventListener("input", (event) => {
-      if (
-        this.pageMin <= event.target.value &&
-        this.pageMax >= event.target.value
-      ) {
-        let aux = this.listaLibrosDisponibles.library.slice();
-        this.listaLibrosDisponiblesFiltrada = aux.filter(
-          (book) => book.book.pages >= event.target.value
-        );
+        masparametros += "&"
       }
-    });
-    document
-      .getElementById("filtroPorTexto")
-      .addEventListener("keyup", (event) => {
-        let aux = new Set(this.listaLibrosDeLectura);
-        this.listaLibrosDeLecturaFiltrada = new Set(
-          Array.from(aux).filter((book) =>
-            book.title.startsWith(
-              event.target.value.charAt(0).toUpperCase() +
-                event.target.value.slice(1)
-            )
-          )
-        );
-      });
-  },
+      axios.get(this.urlApi+masparametros+"language:"+this.idioma+"&startIn  dex="+(this.pageCurrent*this.maxResults)+"&maxResults="+this.maxResults)
+          .then((response) => {
+            this.listaLibrosDisponibles = response.data.items;
+            this.totalLibros = response.data.totalItems;
+            this.pageMax = Math.ceil(response.data.totalItems/20);
+          }).catch((error) => {
+        console.log(error);
+      })
+    },
+    cambiarIdioma(idioma) {
+      this.idioma = idioma;
+      this.buscarLibros()
+    },
+    anterior() {
+      if (this.pageCurrent > 0) {
+        this.pageCurrent--;
+        this.buscarLibros()
+      }
+    },
+    siguiente() {
+      if (this.pageCurrent < this.pageMax) {
+        this.pageCurrent++;
+        this.buscarLibros()
+      }
+    },
+  }
 };
 </script>
 
@@ -105,65 +68,89 @@ export default {
     <div id="librosDisponibles">
       <h1>
         {{
-          this.listaLibrosDisponibles.library.length -
-          this.listaLibrosDeLectura.size
+          this.totalLibros
         }}
         Libros Disponibles
       </h1>
-      <h2>{{ this.listaLibrosDeLectura.size }} en lista de lectura</h2>
-      <div id="filtrarLibros">
+      <header id="filtrarLibros" @submit.prevent>
         <div class="form-group">
-          <label> Filtrar por Nº de páginas </label>
+          <label> Filtrar por autor </label>
           <br />
           <input
-            id="pageRange"
-            type="range"
-            step="1"
-            :max="this.pageMax"
-            :min="this.pageMin"
+              id="autorInput"
+              type="text"
+              @keyup="this.filtrarLibrosPorCategoria($event.target.value)"
           />
         </div>
         <div class="form-group">
-          <label> Filtrar por genero </label>
+          <label> Filtrar por categoría </label>
           <br />
-          <select id="generoSelect">
+          <input
+              id="autorInput"
+              type="text"
+              @keyup="this.filtrarLibrosPorAutor($event.target.value)"
+          />
+        </div>
+        <div class="form-group">
+          <label> Filtrar por idioma </label>
+          <br />
+          <select id="idiomaSelect" @change="this.cambiarIdioma($event.target.value)">
             <option value=""></option>
-            <option v-for="genre in this.listaGeneros" :key="genre">
-              {{ genre }}
-            </option>
+            <option value="es">Español</option>
+            <option value="fr">Frances</option>
+            <option value="en">Ingles</option>
           </select>
         </div>
-      </div>
-      <main>
-        <div v-if="listaLibrosDisponiblesFiltrada.size === 0">
+      </header>
+      <main v-if="this.idioma === null || this.idioma === ''">
+        <div>
+          <h1>Selecciona un idioma</h1>
+        </div>
+      </main>
+      <main v-else>
+        <div v-if="this.listaLibrosDisponibles.size === 0">
           <h1>No hay libros disponibles</h1>
         </div>
         <div v-else>
           <section
-            v-for="book in this.listaLibrosDisponiblesFiltrada"
-            :style="
+            v-for="book in this.listaLibrosDisponibles"
+            :style="book.volumeInfo.imageLinks !== undefined ?
               'background: url(' +
-              book.book.cover +
-              ') no-repeat center center; background-size: cover;'
+              book.volumeInfo.imageLinks.smallThumbnail +
+              ') no-repeat center center; background-size: cover;' : ''
             "
-            :key="book.book.title"
-            :id="book.book.title"
+            :key="book.id"
+            :id="book.id"
             :class="
               'book ' +
-              (this.listaLibrosDeLectura.has(book.book)
+              (this.listaLibrosDeLectura.has(book)
                 ? 'libroLectura'
                 : 'libroDisponible')
             "
-            @click="agregarLibroALectura(book.book)"
           >
             <div id="contenidoLibro">
-              <p><span>Titulo:</span> {{ book.book.title }}</p>
-              <p><span>Nº de páginas:</span> {{ book.book.pages }}</p>
-              <p><span>Autor:</span> {{ book.book.author.name }}</p>
-              <p><span>Genero:</span> {{ book.book.genre }}</p>
-              <p><span>Año:</span> {{ book.book.year }}</p>
+              <p><span>Titulo:</span> {{ book.volumeInfo.title }}</p>
+              <p><span>Nº de páginas:</span> {{ book.volumeInfo.pageCount }}</p>
+              <p><span>Autor:</span> {{ book.volumeInfo.authors.join(', ') }}</p>
+              <p><span>Genero:</span> {{ book.volumeInfo.categories.join(', ') }}</p>
+              <p><span>Año:</span> {{ book.volumeInfo.publishedDate }}</p>
             </div>
           </section>
+          <div id="paginacion">
+            <button id="anterior" @click="anterior" :disabled="this.pageCurrent === 0">&ll;</button>
+            <p>
+              <span id="pageMinimo" v-if="this.pageCurrent !== 0">
+                {{this.pageMin}} -
+              </span>
+              <span id="pageActual">
+                {{ this.pageCurrent+1 }}
+              </span>
+              <span id="pageMaximo" v-if="this.pageCurrent !== this.pageMax">
+                - {{ this.pageMax }}
+              </span>
+            </p>
+            <button id="siguiente" @click="siguiente" :disabled="this.pageCurrent === this.pageMax">&gg;</button>
+          </div>
         </div>
       </main>
     </div>
@@ -325,5 +312,19 @@ img {
     );
     z-index: 1;
   }
+}
+#paginacion{
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: end;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+#pageActual{
+  color : cornflowerblue;
+  font-weight: bolder;
 }
 </style>
