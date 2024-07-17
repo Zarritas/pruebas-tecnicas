@@ -13,37 +13,65 @@ export default {
       pageMax: null,
       pageMin: 1,
       totalLibros: 0,
+      categorias: [
+        "",
+        "Art",
+        "Biography & Autobiography",
+        "Business & Economics",
+        "Comics & Graphic Novels",
+        "Computers",
+        "Cooking",
+        "Design",
+        "Drama",
+        "Education",
+        "Family & Relationships",
+        "Games",
+        "Gardening",
+        "Health & Fitness",
+        "History",
+        "Humor",
+        "Law",
+        "Literary Criticism",
+        "Mathematics",
+        "Medical",
+        "Performing Arts",
+        "Philosophy",
+        "Poetry",
+        "Political Science",
+        "Psychology",
+        "Religion",
+        "Science",
+        "Self-Help",
+        "Social Science",
+        "Sports & Recreation",
+        "Technology & Engineering",
+        "Transportation",
+        "Travel",
+      ],
+      idiomas: ["", "es", "en", "fr"],
       idioma: null,
       urlApi: "https://www.googleapis.com/books/v1/volumes?q=",
+      filters: {
+        title: "",
+        category: "",
+        author: "",
+      },
+      cargando: false,
     };
   },
   methods: {
     buscarLibros() {
-      let masparametros = "";
-      if (document.getElementById("titleInput").value !== "") {
-        if (masparametros !== "") {
-          masparametros += "+";
-        }
-        masparametros +=
-            "intitle:" + document.getElementById("titleInput").value;
-      }
-      if (document.getElementById("categoriaInput").value !== "") {
-        if (masparametros !== "") {
-          masparametros += "+";
-        }
-          masparametros +=
-              "subject:" + document.getElementById("categoriaInput").value;
-      }
-      if (document.getElementById("autorInput").value !== "") {
-        if (masparametros !== "") {
-          masparametros += "+";
-        }
-        masparametros +=
-          "inauthor:" + document.getElementById("autorInput").value;
-      }
-      if (masparametros !== "") {
-        masparametros += "&";
-      }
+      this.cargando = true;
+      let masparametros = [];
+
+      if (this.filters.title)
+        masparametros.push(`intitle:${this.filters.title}`);
+      if (this.filters.category)
+        masparametros.push(`subject:${this.filters.category}`);
+      if (this.filters.author)
+        masparametros.push(`inauthor:${this.filters.author}`);
+
+      masparametros = masparametros.length ? masparametros.join("+") + "&" : "";
 
       axios
         .get(
@@ -71,10 +99,10 @@ export default {
       if (this.listaLibrosDisponibles === undefined) {
         this.pageCurrent = 0;
       }
+      this.cargando = false;
     },
-    cambiarIdioma(idioma) {
-      this.idioma = idioma;
-      this.buscarLibros();
+    cambiarIdioma() {
+      setTimeout(this.buscarLibros, 1000);
     },
     anterior() {
       if (this.pageCurrent > 0) {
@@ -101,35 +129,47 @@ export default {
       </h1>
       <header id="filtrarLibros" @submit.prevent>
         <div class="form-group">
-          <label> Filtrar por titulo </label>
-          <br />
-          <input id="titleInput" type="text" @blur="this.buscarLibros()" />
+          <v-text-field
+            label="Filtrar por titulo"
+            id="titleInput"
+            v-model="filters.title"
+            @blur="buscarLibros"
+          />
         </div>
         <div class="form-group">
-          <label> Filtrar por categoría </label>
-          <br />
-          <input id="categoriaInput" type="text" @blur="this.buscarLibros()" />
+          <v-text-field
+            label="Filtrar por autor"
+            id="autorInput"
+            v-model="filters.author"
+            @blur="buscarLibros"
+          />
         </div>
         <div class="form-group">
-          <label> Filtrar por autor </label>
-          <br />
-          <input id="autorInput" type="text" @blur="this.buscarLibros()" />
+          <v-select
+            id="categoriaInput"
+            label="Filtrar por categoría"
+            :items="categorias"
+            v-model="filters.category"
+            @blur="buscarLibros"
+          />
         </div>
         <div class="form-group">
-          <label> Filtrar por idioma </label>
-          <br />
-          <select
+          <v-select
             id="idiomaSelect"
-            @change="this.cambiarIdioma($event.target.value)"
-          >
-            <option value=""></option>
-            <option value="es">Español</option>
-            <option value="fr">Frances</option>
-            <option value="en">Ingles</option>
-          </select>
+            label="Seleccionar idioma"
+            :items="idiomas"
+            v-model="idioma"
+            @blur="cambiarIdioma"
+          />
         </div>
       </header>
-      <main v-if="this.idioma === null || this.idioma === ''">
+      <main id="cargando" v-if="cargando">
+        <div class="contenedor-loader">
+          <div class="rueda"></div>
+        </div>
+        <div class="cargando">Cargando...</div>
+      </main>
+      <main v-else-if="!idioma">
         <div>
           <h1>Selecciona un idioma</h1>
         </div>
@@ -196,27 +236,27 @@ export default {
         </div>
         <div id="paginacion">
           <button
-              id="anterior"
-              @click="anterior"
-              :disabled="this.pageCurrent === 0"
+            id="anterior"
+            @click="anterior"
+            :disabled="this.pageCurrent === 0"
           >
             &ll;
           </button>
           <p>
-              <span id="pageMinimo" v-if="this.pageCurrent !== 0">
-                {{ this.pageMin }} -
-              </span>
+            <span id="pageMinimo" v-if="this.pageCurrent !== 0">
+              {{ this.pageMin }} -
+            </span>
             <span id="pageActual">
-                {{ this.pageCurrent + 1 }}
-              </span>
-            <span id="pageMaximo" v-if="(this.pageCurrent+1) !== this.pageMax">
-                - {{ this.pageMax }}
-              </span>
+              {{ this.pageCurrent + 1 }}
+            </span>
+            <span id="pageMaximo" v-if="this.pageCurrent + 1 !== this.pageMax">
+              - {{ this.pageMax }}
+            </span>
           </p>
           <button
-              id="siguiente"
-              @click="siguiente"
-              :disabled="this.pageCurrent === this.pageMax-1"
+            id="siguiente"
+            @click="siguiente"
+            :disabled="this.pageCurrent === this.pageMax - 1"
           >
             &gg;
           </button>
@@ -254,12 +294,11 @@ export default {
 
 <style scoped>
 #todo {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-column-gap: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
   height: 100%;
-  align-items: start;
 }
 
 .librosDisponibles {
@@ -309,6 +348,11 @@ img {
 
 .form-group {
   margin-bottom: 10px;
+  width: 400px;
+}
+
+.v-text-field input {
+  min-width: 400px;
 }
 
 #filtrarLibros {
@@ -402,5 +446,39 @@ img {
   margin: 0;
   overflow: auto;
   padding-left: 5px;
+}
+
+.rueda {
+  border: 10px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-left-color: transparent;
+  width: 80px;
+  height: 80px;
+  animation: giro 1s linear infinite;
+}
+
+@keyframes giro {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cargando {
+  position: relative;
+  color: #fff;
+  margin-top: 2em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#cargando {
+  display: grid;
+  place-content: center;
+  height: 100vh;
+  color: #000;
 }
 </style>
