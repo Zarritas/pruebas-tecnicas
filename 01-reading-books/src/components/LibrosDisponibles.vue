@@ -18,83 +18,110 @@ export default {
     };
   },
   methods: {
-    filtrarLibrosPorCategoria(categoria) {
-      let autorFiltrado ="subject:" + categoria;
-      this.buscarLibros(autorFiltrado)
-    },
-    filtrarLibrosPorAutor(autor) {
-      let autorFiltrado ="inauthor:" + autor;
-      this.buscarLibros(autorFiltrado)
-    },
-    buscarLibros(...args) {
+    buscarLibros() {
       let masparametros = "";
-      if (args.length > 0) {
-        for (let i = 0; i < args.length; i++) {
-          masparametros += "+"+args[i];
+      if (document.getElementById("titleInput").value !== "") {
+        if (masparametros !== "") {
+          masparametros += "+";
         }
-        masparametros += "&"
+        masparametros +=
+            "intitle:" + document.getElementById("titleInput").value;
       }
-      axios.get(this.urlApi+masparametros+"language:"+this.idioma+"&startIn  dex="+(this.pageCurrent*this.maxResults)+"&maxResults="+this.maxResults)
-          .then((response) => {
-            this.listaLibrosDisponibles = response.data.items;
-            this.totalLibros = response.data.totalItems;
-            this.pageMax = Math.ceil(response.data.totalItems/20);
-          }).catch((error) => {
-        console.log(error);
-      })
+      if (document.getElementById("categoriaInput").value !== "") {
+        if (masparametros !== "") {
+          masparametros += "+";
+        }
+          masparametros +=
+              "subject:" + document.getElementById("categoriaInput").value;
+      }
+      if (document.getElementById("autorInput").value !== "") {
+        if (masparametros !== "") {
+          masparametros += "+";
+        }
+        masparametros +=
+          "inauthor:" + document.getElementById("autorInput").value;
+      }
+      if (masparametros !== "") {
+        masparametros += "&";
+      }
+
+      axios
+        .get(
+          this.urlApi +
+            masparametros +
+            "language:" +
+            this.idioma +
+            "&startIndex=" +
+            this.pageCurrent * this.maxResults +
+            "&maxResults=" +
+            this.maxResults
+        )
+        .then((response) => {
+          if (response.data.items === null) {
+            this.listaLibrosDisponibles = undefined;
+            return;
+          }
+          this.listaLibrosDisponibles = response.data.items;
+          this.totalLibros = response.data.totalItems;
+          this.pageMax = Math.ceil(response.data.totalItems / 20);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+      if (this.listaLibrosDisponibles === undefined) {
+        this.pageCurrent = 0;
+      }
     },
     cambiarIdioma(idioma) {
       this.idioma = idioma;
-      this.buscarLibros()
+      this.buscarLibros();
     },
     anterior() {
       if (this.pageCurrent > 0) {
         this.pageCurrent--;
-        this.buscarLibros()
+        this.buscarLibros();
       }
     },
     siguiente() {
       if (this.pageCurrent < this.pageMax) {
         this.pageCurrent++;
-        this.buscarLibros()
+        this.buscarLibros();
       }
     },
-  }
+  },
 };
 </script>
 
 <template>
   <div id="todo">
-    <div id="librosDisponibles">
+    <div id="librosDisponibles" class="librosDisponibles flex">
       <h1>
-        {{
-          this.totalLibros
-        }}
+        {{ this.totalLibros }}
         Libros Disponibles
       </h1>
       <header id="filtrarLibros" @submit.prevent>
         <div class="form-group">
-          <label> Filtrar por autor </label>
+          <label> Filtrar por titulo </label>
           <br />
-          <input
-              id="autorInput"
-              type="text"
-              @keyup="this.filtrarLibrosPorCategoria($event.target.value)"
-          />
+          <input id="titleInput" type="text" @blur="this.buscarLibros()" />
         </div>
         <div class="form-group">
           <label> Filtrar por categoría </label>
           <br />
-          <input
-              id="autorInput"
-              type="text"
-              @keyup="this.filtrarLibrosPorAutor($event.target.value)"
-          />
+          <input id="categoriaInput" type="text" @blur="this.buscarLibros()" />
+        </div>
+        <div class="form-group">
+          <label> Filtrar por autor </label>
+          <br />
+          <input id="autorInput" type="text" @blur="this.buscarLibros()" />
         </div>
         <div class="form-group">
           <label> Filtrar por idioma </label>
           <br />
-          <select id="idiomaSelect" @change="this.cambiarIdioma($event.target.value)">
+          <select
+            id="idiomaSelect"
+            @change="this.cambiarIdioma($event.target.value)"
+          >
             <option value=""></option>
             <option value="es">Español</option>
             <option value="fr">Frances</option>
@@ -108,16 +135,24 @@ export default {
         </div>
       </main>
       <main v-else>
-        <div v-if="this.listaLibrosDisponibles.size === 0">
+        <div
+          v-if="
+            this.listaLibrosDisponibles === undefined ||
+            this.listaLibrosDisponibles === null ||
+            this.listaLibrosDisponibles.size === 0
+          "
+        >
           <h1>No hay libros disponibles</h1>
         </div>
         <div v-else>
           <section
             v-for="book in this.listaLibrosDisponibles"
-            :style="book.volumeInfo.imageLinks !== undefined ?
-              'background: url(' +
-              book.volumeInfo.imageLinks.smallThumbnail +
-              ') no-repeat center center; background-size: cover;' : ''
+            :style="
+              book.volumeInfo.imageLinks !== undefined
+                ? 'background: url(' +
+                  book.volumeInfo.imageLinks.smallThumbnail +
+                  ') no-repeat center center; background-size: cover;'
+                : ''
             "
             :key="book.id"
             :id="book.id"
@@ -129,28 +164,62 @@ export default {
             "
           >
             <div id="contenidoLibro">
-              <p><span>Titulo:</span> {{ book.volumeInfo.title }}</p>
-              <p><span>Nº de páginas:</span> {{ book.volumeInfo.pageCount }}</p>
-              <p><span>Autor:</span> {{ book.volumeInfo.authors.join(', ') }}</p>
-              <p><span>Genero:</span> {{ book.volumeInfo.categories.join(', ') }}</p>
-              <p><span>Año:</span> {{ book.volumeInfo.publishedDate }}</p>
+              <p class="description" v-if="book.volumeInfo.title !== undefined">
+                <span>Titulo:</span> {{ book.volumeInfo.title }}
+              </p>
+              <p
+                class="description"
+                v-if="book.volumeInfo.pageCount !== undefined"
+              >
+                <span>Nº de páginas:</span> {{ book.volumeInfo.pageCount }}
+              </p>
+              <p
+                class="description"
+                v-if="book.volumeInfo.authors !== undefined"
+              >
+                <span>Autor:</span> {{ book.volumeInfo.authors.join(", ") }}
+              </p>
+              <p
+                class="description"
+                v-if="book.volumeInfo.categories !== undefined"
+              >
+                <span>Genero:</span> {{ book.volumeInfo.categories.join(", ") }}
+              </p>
+              <p
+                class="description"
+                v-if="book.volumeInfo.publishedDate !== undefined"
+              >
+                <span>Año:</span> {{ book.volumeInfo.publishedDate }}
+              </p>
             </div>
           </section>
-          <div id="paginacion">
-            <button id="anterior" @click="anterior" :disabled="this.pageCurrent === 0">&ll;</button>
-            <p>
+        </div>
+        <div id="paginacion">
+          <button
+              id="anterior"
+              @click="anterior"
+              :disabled="this.pageCurrent === 0"
+          >
+            &ll;
+          </button>
+          <p>
               <span id="pageMinimo" v-if="this.pageCurrent !== 0">
-                {{this.pageMin}} -
+                {{ this.pageMin }} -
               </span>
-              <span id="pageActual">
-                {{ this.pageCurrent+1 }}
+            <span id="pageActual">
+                {{ this.pageCurrent + 1 }}
               </span>
-              <span id="pageMaximo" v-if="this.pageCurrent !== this.pageMax">
+            <span id="pageMaximo" v-if="(this.pageCurrent+1) !== this.pageMax">
                 - {{ this.pageMax }}
               </span>
-            </p>
-            <button id="siguiente" @click="siguiente" :disabled="this.pageCurrent === this.pageMax">&gg;</button>
-          </div>
+          </p>
+          <button
+              id="siguiente"
+              @click="siguiente"
+              :disabled="this.pageCurrent === this.pageMax-1"
+          >
+            &gg;
+          </button>
         </div>
       </main>
     </div>
@@ -193,7 +262,7 @@ export default {
   align-items: start;
 }
 
-#librosDisponibles {
+.librosDisponibles {
   width: 100%;
   height: 100%;
   padding: 10px;
@@ -295,8 +364,10 @@ img {
 .libroDisponible:hover .description {
   display: block;
 }
+
 .libroCompletado {
   backdrop-filter: blur(1px);
+
   &::before {
     content: "";
     position: absolute;
@@ -304,16 +375,12 @@ img {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(
-      0,
-      0,
-      0,
-      0.5
-    );
+    background: rgba(0, 0, 0, 0.5);
     z-index: 1;
   }
 }
-#paginacion{
+
+#paginacion {
   display: flex;
   width: 100%;
   flex-direction: row;
@@ -322,9 +389,18 @@ img {
   align-self: end;
   gap: 5px;
   margin-bottom: 10px;
+  color: #cccccc;
 }
-#pageActual{
-  color : cornflowerblue;
+
+#pageActual {
+  color: cornflowerblue;
   font-weight: bolder;
+}
+
+.description {
+  max-height: 20%;
+  margin: 0;
+  overflow: auto;
+  padding-left: 5px;
 }
 </style>
